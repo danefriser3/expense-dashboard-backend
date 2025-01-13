@@ -2,13 +2,16 @@ require("dotenv").config();
 
 const express = require("express");
 const app = express();
-const { sql } = require("@vercel/postgres");
+import { createClient } from "@vercel/postgres";
 import { Request, Response } from "express";
 
 const bodyParser = require("body-parser");
 
 // Create application/x-www-form-urlencoded parser
 const urlencodedParser = bodyParser.urlencoded({ extended: false });
+
+const client = createClient();
+client.connect();
 
 app.use(express.static("public"));
 
@@ -21,7 +24,7 @@ app.post(
   urlencodedParser,
   async (req: Request, res: Response) => {
     try {
-      await sql`INSERT INTO Users (Id, Name, Email) VALUES (${req.body.user_id}, ${req.body.name}, ${req.body.email});`;
+      // await sql`INSERT INTO Users (Id, Name, Email) VALUES (${req.body.user_id}, ${req.body.name}, ${req.body.email});`;
       res.status(200).send("<h1>User added successfully</h1>");
     } catch (error) {
       console.error(error);
@@ -32,15 +35,22 @@ app.post(
 
 app.get("/allUsers", async (req: Request, res: Response) => {
   try {
-    const users = await sql`SELECT * FROM Users;`;
-    if (users && users.rows.length > 0) {
-      res.status(200).send(users.rows);
-    } else {
-      res.status(404).send("Users not found");
-    }
+    const { rows: users } = await client.sql`SELECT * from users`;
+    res.status(200).send({ users });
   } catch (error) {
     console.error(error);
-    res.status(500).send("Error retrieving users");
+    res.status(500).send("Error sequencing user");
+  }
+});
+
+app.get("/user/:id", async (req: Request, res: Response) => {
+  try {
+    const { rows: user } =
+      await client.sql`SELECT * from users where id = ${req.params.id}`;
+    res.status(200).send({ user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error sequencing user");
   }
 });
 
