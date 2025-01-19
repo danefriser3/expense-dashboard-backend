@@ -100,7 +100,7 @@ app.get("/incomes/:bankAccount", async (req: Request, res: Response) => {
     res.status(200).json(
       incomes.map((income) => ({
         ...income,
-        amount: income.amount,
+        amount: parseFloat(income.amount.toString()),
       }))
     );
   } catch (error) {
