@@ -80,7 +80,7 @@ app.put(
 app.get("/expenses/:bankAccount", async (req: Request, res: Response) => {
   try {
     const { rows: expenses } =
-      await client.sql`SELECT * FROM expenses WHERE bank_account = ${req.params.bankAccount}`;
+      await client.sql`SELECT * FROM expenses WHERE bank_account = ${req.params.bankAccount} ORDER BY date ASC`;
     res.status(200).json(
       expenses.map((expense) => ({
         ...expense,
