@@ -29,6 +29,16 @@ export interface Expense {
   details: string;
 }
 
+export interface Income {
+  id: string;
+  name: string;
+  amount: number;
+  category: string;
+  date: string;
+  bankAccount: string;
+  details: string;
+}
+
 export interface BankAccount {
   id: string;
   name: string;
@@ -83,6 +93,22 @@ app.get("/expenses/:bankAccount", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/incomes/:bankAccount", async (req: Request, res: Response) => {
+  try {
+    const { rows: incomes }: { rows: Income[] } =
+      await client.sql`SELECT * FROM incomes WHERE bank_account = ${req.params.bankAccount}`;
+    res.status(200).json(
+      incomes.map((income) => ({
+        ...income,
+        amount: income.amount,
+      }))
+    );
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching incomes");
+  }
+});
+
 app.get("/expenses/:id", async (req: Request, res: Response) => {
   try {
     const { rows: expense } =
@@ -112,6 +138,20 @@ app.post("/expenses", urlencodedParser, async (req: Request, res: Response) => {
   }
 });
 
+app.post("/incomes", urlencodedParser, async (req: Request, res: Response) => {
+  const { name, amount, category, date, bankAccount, details }: Income =
+    req.body;
+  try {
+    await client.sql`INSERT INTO incomes (name, amount, category, date, bank_account, details) VALUES (${name}, ${amount}, ${category}, ${date}, ${bankAccount}, ${
+      details ?? ""
+    })`;
+    res.status(201).send("Income added successfully");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error adding income");
+  }
+});
+
 app.put(
   "/expenses/:id",
   urlencodedParser,
@@ -134,6 +174,16 @@ app.delete("/expenses/:id", async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).send("Error deleting expense");
+  }
+});
+
+app.delete("/incomes/:id", async (req: Request, res: Response) => {
+  try {
+    await client.sql`DELETE FROM incomes WHERE id = ${req.params.id}`;
+    res.status(200).send("Income deleted successfully");
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error deleting income");
   }
 });
 
