@@ -27,6 +27,7 @@ export interface Expense {
   date: string;
   bankAccount: string;
   details: string;
+  user_id: string;
 }
 
 export interface Income {
@@ -37,6 +38,7 @@ export interface Income {
   date: string;
   bankAccount: string;
   details: string;
+  user_id: string;
 }
 
 export interface BankAccount {
@@ -60,13 +62,23 @@ app.get("/bank_accounts", async (req: Request, res: Response) => {
     res.status(500).send("Error fetching expenses");
   }
 });
+app.post("/users", async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+  try {
+    const { rows: user } =
+      await client.sql`SELECT * FROM users where email = ${email} and password = ${password}`;
+    res.status(200).json(user[0]);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching user");
+  }
+});
 
 app.put(
   "/bank_accounts/:id",
   urlencodedParser,
   async (req: Request, res: Response) => {
     const { name, base_value }: Partial<BankAccount> = req.body;
-    console.log(name, base_value, req.params.id);
     try {
       await client.sql`UPDATE bank_accounts SET name = ${name}, base_value = ${base_value} WHERE id = ${req.params.id}`;
       res.status(200).send("Bank Account updated successfully");
@@ -77,37 +89,45 @@ app.put(
   }
 );
 
-app.get("/expenses/:bankAccount", async (req: Request, res: Response) => {
-  try {
-    const { rows: expenses } =
-      await client.sql`SELECT * FROM expenses WHERE bank_account = ${req.params.bankAccount} ORDER BY date ASC`;
-    res.status(200).json(
-      expenses.map((expense) => ({
-        ...expense,
-        amount: parseFloat(expense.amount),
-      }))
-    );
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error fetching expenses");
+app.get(
+  "/expenses/:userId/:bankAccount",
+  async (req: Request, res: Response) => {
+    try {
+      const { userId, bankAccount } = req.params;
+      const { rows: expenses } =
+        await client.sql`SELECT * FROM expenses WHERE user_id = ${userId} AND bank_account = ${bankAccount} ORDER BY date ASC`;
+      res.status(200).json(
+        expenses.map((expense) => ({
+          ...expense,
+          amount: parseFloat(expense.amount),
+        }))
+      );
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error fetching expenses");
+    }
   }
-});
+);
 
-app.get("/incomes/:bankAccount", async (req: Request, res: Response) => {
-  try {
-    const { rows: incomes }: { rows: Income[] } =
-      await client.sql`SELECT * FROM incomes WHERE bank_account = ${req.params.bankAccount}`;
-    res.status(200).json(
-      incomes.map((income) => ({
-        ...income,
-        amount: parseFloat(income.amount.toString()),
-      }))
-    );
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error fetching incomes");
+app.get(
+  "/incomes/:userId/:bankAccount",
+  async (req: Request, res: Response) => {
+    try {
+      const { userId, bankAccount } = req.params;
+      const { rows: incomes }: { rows: Income[] } =
+        await client.sql`SELECT * FROM incomes WHERE user_id = ${userId} AND bank_account = ${bankAccount}`;
+      res.status(200).json(
+        incomes.map((income) => ({
+          ...income,
+          amount: parseFloat(income.amount.toString()),
+        }))
+      );
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error fetching incomes");
+    }
   }
-});
+);
 
 app.get("/expenses/:id", async (req: Request, res: Response) => {
   try {
@@ -125,12 +145,19 @@ app.get("/expenses/:id", async (req: Request, res: Response) => {
 });
 
 app.post("/expenses", urlencodedParser, async (req: Request, res: Response) => {
-  const { name, amount, category, date, bankAccount, details }: Expense =
-    req.body;
+  const {
+    name,
+    amount,
+    category,
+    date,
+    bankAccount,
+    details,
+    user_id,
+  }: Expense = req.body;
   try {
-    await client.sql`INSERT INTO expenses (name, amount, category, date, bank_account, details) VALUES (${name}, ${amount}, ${category}, ${date}, ${bankAccount}, ${
+    await client.sql`INSERT INTO expenses (name, amount, category, date, bank_account, details, user_id) VALUES (${name}, ${amount}, ${category}, ${date}, ${bankAccount}, ${
       details ?? ""
-    })`;
+    }, ${user_id})`;
     res.status(201).send("Expense added successfully");
   } catch (error) {
     console.error(error);
@@ -139,12 +166,19 @@ app.post("/expenses", urlencodedParser, async (req: Request, res: Response) => {
 });
 
 app.post("/incomes", urlencodedParser, async (req: Request, res: Response) => {
-  const { name, amount, category, date, bankAccount, details }: Income =
-    req.body;
+  const {
+    name,
+    amount,
+    category,
+    date,
+    bankAccount,
+    details,
+    user_id,
+  }: Income = req.body;
   try {
-    await client.sql`INSERT INTO incomes (name, amount, category, date, bank_account, details) VALUES (${name}, ${amount}, ${category}, ${date}, ${bankAccount}, ${
+    await client.sql`INSERT INTO incomes (name, amount, category, date, bank_account, details, user_id) VALUES (${name}, ${amount}, ${category}, ${date}, ${bankAccount}, ${
       details ?? ""
-    })`;
+    }, ${user_id})`;
     res.status(201).send("Income added successfully");
   } catch (error) {
     console.error(error);
