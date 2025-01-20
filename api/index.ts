@@ -95,7 +95,7 @@ app.get(
     try {
       const { userId, bankAccount } = req.params;
       const { rows: expenses } =
-        await client.sql`SELECT * FROM expenses WHERE user_id = ${userId} AND bank_account = ${bankAccount} ORDER BY date ASC`;
+        await client.sql`SELECT * FROM expenses WHERE user_id = ${userId} AND bank_account = ${bankAccount} ORDER BY date DESC`;
       res.status(200).json(
         expenses.map((expense) => ({
           ...expense,
