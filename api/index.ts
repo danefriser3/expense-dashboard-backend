@@ -165,6 +165,27 @@ app.post("/expenses", urlencodedParser, async (req: Request, res: Response) => {
   }
 });
 
+app.post(
+  "/expenses-multi",
+  urlencodedParser,
+  async (req: Request, res: Response) => {
+    const exps: Expense[] = req.body;
+    try {
+      for (const expense of exps) {
+        const { name, amount, category, date, bankAccount, details, user_id } =
+          expense;
+        await client.sql`INSERT INTO expenses (name, amount, category, date, bank_account, details, user_id) VALUES (${name}, ${amount}, ${category}, ${date}, ${bankAccount}, ${
+          details ?? ""
+        }, ${user_id})`;
+      }
+      res.status(201).send("Expense added successfully");
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error adding expense");
+    }
+  }
+);
+
 app.post("/incomes", urlencodedParser, async (req: Request, res: Response) => {
   const {
     name,
